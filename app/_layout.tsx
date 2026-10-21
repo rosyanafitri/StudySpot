@@ -18,6 +18,10 @@ export default function Layout() {
         name="detail/[id]" 
         options={{ title: 'Detail Spot Nugas 💖' }} 
       />
+      <Stack.Screen 
+        name="favorites" 
+        options={{ title: 'Favorit Saya 💖' }} 
+      />
     </Stack>
   );
 }

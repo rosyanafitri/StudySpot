@@ -1,20 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet } from 'react-native';
+import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { STUDY_SPOTS } from '../constants/mockData';
 import { StudySpotCard } from '../components/StudySpotCard';
 import { spotStyles } from '../styles/spotStyles';
 
 export default function IndexPage() {
-  // Hook useState untuk menyimpan keyword pencarian
+  const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter data spot berdasarkan input pencarian
   const filteredSpots = STUDY_SPOTS.filter((spot) =>
     spot.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <View style={spotStyles.container}>
+      {/* Tombol Akses ke Halaman Favorit */}
+      <TouchableOpacity
+        style={styles.favNavButton}
+        onPress={() => router.push('/favorites')}
+      >
+        <Text style={styles.favNavText}>💖 Lihat Spot Favorit Saya</Text>
+      </TouchableOpacity>
+
       {/* Search Bar Input */}
       <View style={styles.searchContainer}>
         <TextInput
@@ -42,6 +50,19 @@ export default function IndexPage() {
 }
 
 const styles = StyleSheet.create({
+  favNavButton: {
+    backgroundColor: '#FF6B81',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  favNavText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 14,
+  },
   searchContainer: {
     marginBottom: 16,
   },
