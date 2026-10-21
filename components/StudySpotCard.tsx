@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { StudySpot } from '../types/spot';
 import { spotStyles } from '../styles/spotStyles';
 
@@ -8,13 +9,14 @@ interface Props {
 }
 
 export const StudySpotCard = ({ spot }: Props) => {
-  // Custom Function & Callback Function (Materi 5.3)
+  const router = useRouter();
+
   const handlePress = () => {
-    Alert.alert('Info Spot 💖', `Kamu memilih tempat nugas: ${spot.name}`);
+    // Berpindah ke halaman detail berbasis parameter ID
+    router.push(`/detail/${spot.id}`);
   };
 
   return (
-    // Menggunakan TouchableOpacity agar card bisa diklik
     <TouchableOpacity onPress={handlePress} style={spotStyles.card}>
       <View style={spotStyles.cardHeader}>
         <View style={spotStyles.titleGroup}>
@@ -22,7 +24,6 @@ export const StudySpotCard = ({ spot }: Props) => {
           <Text style={spotStyles.cardTitle}>{spot.name}</Text>
         </View>
 
-        {/* Contoh Inline Styling (Materi 3.3) gabung dengan External Style */}
         <View style={[spotStyles.badgeRating, { backgroundColor: '#FFE4E8' }]}>
           <Text style={spotStyles.ratingText}>⭐ {spot.rating}</Text>
         </View>
@@ -36,9 +37,6 @@ export const StudySpotCard = ({ spot }: Props) => {
         <Text style={spotStyles.infoText}>🔌 Colokan: {spot.powerOutlets}</Text>
         <Text style={spotStyles.infoText}>📶 WiFi: {spot.wifiQuality}</Text>
       </View>
-    
     </TouchableOpacity>
-    
-    
   );
 };
