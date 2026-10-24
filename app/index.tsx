@@ -45,7 +45,9 @@ export default function IndexPage() {
           <Text style={styles.emptyText}>Spot nugas tidak ditemukan 🌸</Text>
         }
       />
+
     </View>
+    
   );
 }
 

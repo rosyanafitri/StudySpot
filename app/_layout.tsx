@@ -7,56 +7,45 @@ export default function Layout() {
   return (
     <Stack
       screenOptions={{
-        headerStyle: { backgroundColor: '#FFE4E8' },
-        headerTintColor: '#FF6B81',
-        headerTitleStyle: { fontWeight: 'bold' },
-        contentStyle: { backgroundColor: '#FFF5F7' },
+        headerStyle: { backgroundColor: '#FFFFFF' },
+        headerTintColor: '#0F172A',
+        headerTitleStyle: { fontWeight: '600', fontSize: 18 },
+        contentStyle: { backgroundColor: '#F8FAFC' },
+        headerShadowVisible: false, // Hilangkan border tebal header
       }}
     >
       <Stack.Screen 
         name="index" 
         options={{ 
-          title: 'StudySpot ✨',
+          title: 'StudySpot',
           headerRight: () => (
             <TouchableOpacity 
               style={styles.headerButton} 
               onPress={() => router.push('/login')}
             >
-              <Text style={styles.headerButtonText}>👤 Login</Text>
+              <Text style={styles.headerButtonText}>Masuk</Text>
             </TouchableOpacity>
           ),
         }} 
       />
-      <Stack.Screen 
-        name="detail/[id]" 
-        options={{ title: 'Detail Spot Nugas 💖' }} 
-      />
-      <Stack.Screen 
-        name="favorites" 
-        options={{ title: 'Favorit Saya 💖' }} 
-      />
-      <Stack.Screen 
-        name="login" 
-        options={{ title: 'Masuk Akun 🔑' }} 
-      />
-      <Stack.Screen 
-        name="profile" 
-        options={{ title: 'Profil Saya 👤' }} 
-      />
+      <Stack.Screen name="detail/[id]" options={{ title: 'Detail Spot' }} />
+      <Stack.Screen name="favorites" options={{ title: 'Spot Favorit' }} />
+      <Stack.Screen name="login" options={{ title: 'Masuk Akun' }} />
+      <Stack.Screen name="profile" options={{ title: 'Profil' }} />
     </Stack>
   );
 }
 
 const styles = StyleSheet.create({
   headerButton: {
-    backgroundColor: '#FF6B81',
-    paddingHorizontal: 12,
+    backgroundColor: '#6366F1',
+    paddingHorizontal: 14,
     paddingVertical: 6,
-    borderRadius: 12,
+    borderRadius: 8,
   },
   headerButtonText: {
     color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 12,
+    fontWeight: '600',
+    fontSize: 13,
   },
 });
