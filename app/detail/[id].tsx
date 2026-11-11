@@ -1,25 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { STUDY_SPOTS } from '../../constants/mockData';
+import { StudySpot } from '../../types/spot';
+import { getStudySpotById } from '../../services/spotService';
 
 export default function DetailSpotPage() {
-  const { id } = useLocalSearchParams(); // Mengambil parameter ID dari URL
+  const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
 
-  // Hook useState untuk status Favorite
+  const [spot, setSpot] = useState<StudySpot | null>(null);
+  const [loading, setLoading] = useState(true);
   const [isFavorite, setIsFavorite] = useState(false);
 
-  // Cari data spot berdasarkan ID
-  const spot = STUDY_SPOTS.find((s) => s.id === id);
-
-  // Hook useEffect untuk mencatat log saat halaman dibuka
+  // 🟢 Ambil detail spot dari API Service secara asynchronous
   useEffect(() => {
-    if (spot) {
-      console.log(`Halaman detail dibuka untuk: ${spot.name}`);
-    }
+    const fetchSpotDetail = async () => {
+      if (id) {
+        setLoading(true);
+        const response = await getStudySpotById(id);
+        if (response.success && response.data) {
+          setSpot(response.data);
+        }
+        setLoading(false);
+      }
+    };
+
+    fetchSpotDetail();
   }, [id]);
 
+  // Status Loading
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <ActivityIndicator size="large" color="#FF6B81" />
+        <Text style={styles.loadingText}>Memuat detail spot dari server...</Text>
+      </View>
+    );
+  }
+
+  // Status jika Spot tidak ditemukan
   if (!spot) {
     return (
       <View style={styles.container}>
@@ -88,8 +107,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFF5F7',
     padding: 20,
     justifyContent: 'center',
+    alignItems: 'center',
   },
   card: {
+    width: '100%',
     backgroundColor: '#FFFFFF',
     borderRadius: 24,
     padding: 24,
@@ -146,5 +167,10 @@ const styles = StyleSheet.create({
     color: '#FF6B81',
     textAlign: 'center',
     marginBottom: 16,
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#FF6B81',
+    fontSize: 14,
   },
 });

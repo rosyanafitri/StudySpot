@@ -1,15 +1,37 @@
-import React, { useState } from 'react';
-import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, FlatList, TextInput, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
-import { STUDY_SPOTS } from '../constants/mockData';
+import { StudySpot } from '../types/spot';
+import { getStudySpots } from '../services/spotService';
 import { StudySpotCard } from '../components/StudySpotCard';
 import { spotStyles } from '../styles/spotStyles';
 
 export default function IndexPage() {
   const router = useRouter();
+  const [spots, setSpots] = useState<StudySpot[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const filteredSpots = STUDY_SPOTS.filter((spot) =>
+  // 🟢 Panggil API eksternal saat komponen pertama kali dirender
+  useEffect(() => {
+    const fetchSpots = async () => {
+      setLoading(true);
+      setErrorMsg('');
+      const response = await getStudySpots();
+
+      if (response.success) {
+        setSpots(response.data);
+      } else {
+        setErrorMsg(response.message);
+      }
+      setLoading(false);
+    };
+
+    fetchSpots();
+  }, []);
+
+  const filteredSpots = spots.filter((spot) =>
     spot.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -36,18 +58,28 @@ export default function IndexPage() {
 
       <Text style={styles.sectionTitle}>Daftar Rekomendasi Spot:</Text>
 
-      <FlatList
-        data={filteredSpots}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <StudySpotCard spot={item} />}
-        showsVerticalScrollIndicator={false}
-        ListEmptyComponent={
-          <Text style={styles.emptyText}>Spot nugas tidak ditemukan 🌸</Text>
-        }
-      />
-
+      {/* Status Loading */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF6B81" />
+          <Text style={styles.loadingText}>Memuat spot nugas dari server...</Text>
+        </View>
+      ) : errorMsg ? (
+        /* Status Error */
+        <Text style={styles.errorText}>{errorMsg}</Text>
+      ) : (
+        /* Status Sukses - Data dari API */
+        <FlatList
+          data={filteredSpots}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <StudySpotCard spot={item} />}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <Text style={styles.emptyText}>Spot nugas tidak ditemukan 🌸</Text>
+          }
+        />
+      )}
     </View>
-    
   );
 }
 
@@ -88,6 +120,21 @@ const styles = StyleSheet.create({
   emptyText: {
     textAlign: 'center',
     color: '#888888',
+    marginTop: 20,
+    fontSize: 14,
+  },
+  loadingContainer: {
+    paddingVertical: 40,
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 10,
+    color: '#FF6B81',
+    fontSize: 14,
+  },
+  errorText: {
+    textAlign: 'center',
+    color: 'red',
     marginTop: 20,
     fontSize: 14,
   },
