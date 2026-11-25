@@ -1,60 +1,134 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [username, setUsername] = useState('');
+  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleLogin = async () => {
-    if (!username.trim() || !password.trim()) {
-      Alert.alert('Peringatan', 'Silakan isi username dan password kamu terlebih dahulu!');
+  const handleAuth = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Peringatan', 'Silakan isi email dan password kamu terlebih dahulu!');
       return;
     }
 
+    if (isSignUp && !fullName.trim()) {
+      Alert.alert('Peringatan', 'Silakan isi nama lengkap kamu terlebih dahulu!');
+      return;
+    }
+
+    if (password.length < 6) {
+      Alert.alert('Peringatan', 'Password minimal terdiri dari 6 karakter.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      // Simpan username ke AsyncStorage agar bisa dibaca di halaman Profil
-      await AsyncStorage.setItem('user_name', username.trim());
-      
-      Alert.alert('Berhasil', `Selamat datang, ${username}! ✨`);
-      router.replace('/profile'); // Langsung arahkan ke profil untuk cek data
+      if (isSignUp) {
+        const { error } = await signUp(email.trim(), password, fullName.trim());
+        if (error) {
+          Alert.alert('Gagal Mendaftar', error.message);
+        } else {
+          Alert.alert(
+            'Pendaftaran Berhasil ✨',
+            'Akun kamu berhasil dibuat! Jika konfirmasi email aktif di Supabase, silakan cek inbox email kamu terlebih dahulu.'
+          );
+          setIsSignUp(false);
+        }
+      } else {
+        const { error } = await signIn(email.trim(), password);
+        if (error) {
+          Alert.alert('Gagal Masuk', error.message);
+        }
+        // Jika berhasil, AuthContext & Route Guard di _layout.tsx otomatis mengarahkan ke Beranda
+      }
     } catch (error) {
-      Alert.alert('Error', 'Gagal menyimpan data session login.');
+      Alert.alert('Error', 'Terjadi kesalahan saat menghubungi server.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.title}>Masuk ke StudySpot 🌸</Text>
-        <Text style={styles.subtitle}>Masukkan username dan password untuk melanjutkan</Text>
+        <Text style={styles.title}>
+          {isSignUp ? 'Daftar Akun StudySpot 🌸' : 'Masuk ke StudySpot 🌸'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {isSignUp
+            ? 'Buat akun baru untuk menyimpan spot belajar favoritmu'
+            : 'Masukkan email dan password untuk melanjutkan'}
+        </Text>
+
+        {isSignUp && (
+          <TextInput
+            style={styles.input}
+            placeholder="Nama lengkap kamu..."
+            placeholderTextColor="#999"
+            value={fullName}
+            onChangeText={setFullName}
+            editable={!isSubmitting}
+          />
+        )}
 
         <TextInput
           style={styles.input}
-          placeholder="Masukkan username kamu..."
+          placeholder="Masukkan email kamu..."
           placeholderTextColor="#999"
-          value={username}
-          onChangeText={setUsername}
+          value={email}
+          onChangeText={setEmail}
           autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!isSubmitting}
         />
 
         <TextInput
           style={styles.input}
-          placeholder="Masukkan password kamu..."
+          placeholder="Masukkan password (min. 6 karakter)..."
           placeholderTextColor="#999"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
+          editable={!isSubmitting}
         />
 
-        <TouchableOpacity style={styles.loginButton} onPress={handleLogin}>
-          <Text style={styles.loginButtonText}>Masuk</Text>
+        <TouchableOpacity
+          style={[styles.loginButton, isSubmitting && styles.disabledButton]}
+          onPress={handleAuth}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.loginButtonText}>
+              {isSignUp ? 'Daftar Sekarang' : 'Masuk'}
+            </Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.skipButton} onPress={() => router.replace('/')}>
-          <Text style={styles.skipButtonText}>Lanjutkan sebagai Tamu ➡️</Text>
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setIsSignUp(!isSignUp)}
+          disabled={isSubmitting}
+        >
+          <Text style={styles.switchButtonText}>
+            {isSignUp
+              ? 'Sudah punya akun? Masuk di sini'
+              : 'Belum punya akun? Daftar sekarang'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -99,22 +173,27 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: '#FF6B81',
-    paddingVertical: 12,
+    paddingVertical: 13,
     borderRadius: 16,
     alignItems: 'center',
     marginTop: 4,
     marginBottom: 12,
   },
+  disabledButton: {
+    opacity: 0.7,
+  },
   loginButtonText: {
     color: '#FFFFFF',
     fontWeight: 'bold',
+    fontSize: 15,
   },
-  skipButton: {
+  switchButton: {
     alignItems: 'center',
     paddingVertical: 8,
   },
-  skipButtonText: {
-    color: '#888',
+  switchButtonText: {
+    color: '#FF6B81',
     fontSize: 13,
+    fontWeight: '600',
   },
 });

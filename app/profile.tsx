@@ -1,64 +1,134 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, { useState } from 'react';
+import {
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useAuth } from '../context/AuthContext';
 
-export default function ProfilePage() {
-  const router = useRouter();
-  const [userName, setUserName] = useState<string>('');
+export default function LoginPage() {
+  const { signIn, signUp } = useAuth();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [fullName, setFullName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 🟢 Baca data session user saat halaman profil dibuka
-  useEffect(() => {
-    const loadUserData = async () => {
-      try {
-        const storedName = await AsyncStorage.getItem('user_name');
-        if (storedName) {
-          setUserName(storedName);
-        } else {
-          setUserName('Tamu / Belum Login');
-        }
-      } catch (error) {
-        console.log('Gagal memuat data pengguna', error);
-      }
-    };
+  const handleAuth = async () => {
+    if (!email.trim() || !password.trim()) {
+      Alert.alert('Peringatan', 'Silakan isi email dan password kamu terlebih dahulu!');
+      return;
+    }
 
-    loadUserData();
-  }, []);
+    if (isSignUp && !fullName.trim()) {
+      Alert.alert('Peringatan', 'Silakan isi nama lengkap kamu terlebih dahulu!');
+      return;
+    }
 
-  // 🔴 Fungsi Logout (Hapus session data dari storage)
-  const handleLogout = async () => {
+    if (password.length < 6) {
+      Alert.alert('Peringatan', 'Password minimal terdiri dari 6 karakter.');
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
-      await AsyncStorage.removeItem('user_name');
-      Alert.alert('Berhasil Keluar', 'Session kamu telah diakhiri.');
-      router.replace('/login');
+      if (isSignUp) {
+        const { error } = await signUp(email.trim(), password, fullName.trim());
+        if (error) {
+          Alert.alert('Gagal Mendaftar', error.message);
+        } else {
+          Alert.alert(
+            'Pendaftaran Berhasil ✨',
+            'Akun kamu berhasil dibuat! Jika konfirmasi email aktif di Supabase, silakan cek inbox email kamu terlebih dahulu.'
+          );
+          setIsSignUp(false);
+        }
+      } else {
+        const { error } = await signIn(email.trim(), password);
+        if (error) {
+          Alert.alert('Gagal Masuk', error.message);
+        }
+        // Jika berhasil, AuthContext & Route Guard di _layout.tsx otomatis mengarahkan ke Beranda
+      }
     } catch (error) {
-      Alert.alert('Error', 'Gagal melakukan logout.');
+      Alert.alert('Error', 'Terjadi kesalahan saat menghubungi server.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.card}>
-        <Text style={styles.avatar}>👩‍💻</Text>
-        <Text style={styles.name}>{userName || 'Pengguna StudySpot'}</Text>
-        <Text style={styles.subtext}>Status: Active Member 🌸</Text>
-        <Text style={styles.description}>
-          Pengembang / Pengguna Aplikasi StudySpot ✨{"\n"}
-          Membantu mahasiswa menemukan tempat nugas terbaik dengan suasana paling nyaman!
+        <Text style={styles.title}>
+          {isSignUp ? 'Daftar Akun StudySpot 🌸' : 'Masuk ke StudySpot 🌸'}
+        </Text>
+        <Text style={styles.subtitle}>
+          {isSignUp
+            ? 'Buat akun baru untuk menyimpan spot belajar favoritmu'
+            : 'Masukkan email dan password untuk melanjutkan'}
         </Text>
 
-        <TouchableOpacity 
-          style={styles.logoutButton} 
-          onPress={handleLogout}
+        {isSignUp && (
+          <TextInput
+            style={styles.input}
+            placeholder="Nama lengkap kamu..."
+            placeholderTextColor="#999"
+            value={fullName}
+            onChangeText={setFullName}
+            editable={!isSubmitting}
+          />
+        )}
+
+        <TextInput
+          style={styles.input}
+          placeholder="Masukkan email kamu..."
+          placeholderTextColor="#999"
+          value={email}
+          onChangeText={setEmail}
+          autoCapitalize="none"
+          keyboardType="email-address"
+          editable={!isSubmitting}
+        />
+
+        <TextInput
+          style={styles.input}
+          placeholder="Masukkan password (min. 6 karakter)..."
+          placeholderTextColor="#999"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+          editable={!isSubmitting}
+        />
+
+        <TouchableOpacity
+          style={[styles.loginButton, isSubmitting && styles.disabledButton]}
+          onPress={handleAuth}
+          disabled={isSubmitting}
         >
-          <Text style={styles.logoutButtonText}>🚪 Keluar / Ganti Akun</Text>
+          {isSubmitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.loginButtonText}>
+              {isSignUp ? 'Daftar Sekarang' : 'Masuk'}
+            </Text>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity 
-          style={styles.backButton} 
-          onPress={() => router.replace('/')}
+        <TouchableOpacity
+          style={styles.switchButton}
+          onPress={() => setIsSignUp(!isSignUp)}
+          disabled={isSubmitting}
         >
-          <Text style={styles.backButtonText}>⬅️ Kembali ke Beranda</Text>
+          <Text style={styles.switchButtonText}>
+            {isSignUp
+              ? 'Sudah punya akun? Masuk di sini'
+              : 'Belum punya akun? Daftar sekarang'}
+          </Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -69,40 +139,61 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#FFF5F7',
-    padding: 20,
     justifyContent: 'center',
-    alignItems: 'center',
+    padding: 20,
   },
   card: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 24,
     padding: 24,
-    alignItems: 'center',
-    width: '100%',
-    maxWidth: 420,
+    borderRadius: 24,
     elevation: 3,
   },
-  avatar: { fontSize: 60, marginBottom: 12 },
-  name: { fontSize: 22, fontWeight: 'bold', color: '#333333' },
-  subtext: { fontSize: 13, color: '#FF6B81', fontWeight: '600', marginBottom: 16 },
-  description: { textAlign: 'center', color: '#555', marginBottom: 24, lineHeight: 20 },
-  logoutButton: {
+  title: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#FF6B81',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#888',
+    textAlign: 'center',
+    marginBottom: 20,
+  },
+  input: {
+    backgroundColor: '#FFF5F7',
+    borderColor: '#FFE4E8',
+    borderWidth: 1,
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 14,
+    marginBottom: 14,
+  },
+  loginButton: {
     backgroundColor: '#FF6B81',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
+    paddingVertical: 13,
     borderRadius: 16,
-    width: '100%',
     alignItems: 'center',
-    marginBottom: 10,
+    marginTop: 4,
+    marginBottom: 12,
   },
-  logoutButtonText: { color: '#FFFFFF', fontWeight: 'bold' },
-  backButton: {
-    backgroundColor: '#FFE4E8',
-    paddingVertical: 12,
-    paddingHorizontal: 20,
-    borderRadius: 16,
-    width: '100%',
+  disabledButton: {
+    opacity: 0.7,
+  },
+  loginButtonText: {
+    color: '#FFFFFF',
+    fontWeight: 'bold',
+    fontSize: 15,
+  },
+  switchButton: {
     alignItems: 'center',
+    paddingVertical: 8,
   },
-  backButtonText: { color: '#FF6B81', fontWeight: 'bold' },
+  switchButtonText: {
+    color: '#FF6B81',
+    fontSize: 13,
+    fontWeight: '600',
+  },
 });
