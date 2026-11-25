@@ -1,4 +1,5 @@
 import { Linking } from 'react-native';
+
 import { StudySpot } from '../types/spot';
 import { ApiResponse } from '../types/api';
 
@@ -63,17 +64,20 @@ export const searchExternalSpots = async (queryText: string): Promise<ExternalSp
   }
 };
 
-// Custom Async Function: mengambil daftar StudySpot (Rekomendasi Utama)
+// Custom Async Function: mengambil daftar StudySpot
 export const getStudySpots = async (): Promise<ApiResponse<StudySpot[]>> => {
   try {
+    // Pre-built Async Function: fetch()
     const response = await fetch(API_URL);
 
     if (!response.ok) {
       throw new Error(`Server Error: ${response.status}`);
     }
 
+    // Mengubah response API menjadi JSON
     const rawData = await response.json();
 
+    // Konfigurasi data tambahan StudySpot
     const spotConfigs = [
       {
         emoji: '☕',
@@ -122,10 +126,12 @@ export const getStudySpots = async (): Promise<ApiResponse<StudySpot[]>> => {
       },
     ];
 
+    // Memetakan data API ke struktur StudySpot
     const mappedSpots: StudySpot[] = rawData
       .slice(0, 5)
       .map((item: any, index: number) => {
         const config = spotConfigs[index % spotConfigs.length];
+
         return {
           id: String(item.id),
           name:
@@ -170,7 +176,9 @@ export const getStudySpotById = async (
 
     return {
       success: spot !== null,
-      message: spot ? 'Detail spot ditemukan' : 'Spot tidak ditemukan',
+      message: spot
+        ? 'Detail spot ditemukan'
+        : 'Spot tidak ditemukan',
       data: spot,
     };
   } catch (error) {
@@ -183,18 +191,24 @@ export const getStudySpotById = async (
   }
 };
 
-// Progress 3: Promise, resolve(), reject()
+// ==========================================
+// 🟢 PROGRESS 3: Promise, resolve(), reject()
+// ==========================================
+
+// Helper Async Function: Simulasi validasi data spot menggunakan Promise, resolve(), dan reject()
 export const validateSpotsData = (spots: StudySpot[]): Promise<StudySpot[]> => {
   return new Promise((resolve, reject) => {
+    // Jika array data tidak kosong, panggil resolve()
     if (spots && spots.length > 0) {
       resolve(spots);
     } else {
+      // Jika data kosong atau bermasalah, panggil reject()
       reject(new Error('Validasi Gagal: Data StudySpot kosong atau tidak ditemukan.'));
     }
   });
 };
 
-// Custom Function menggunakan .then(), .catch()
+// Custom Function menggunakan .then(), .catch(), serta memanfaatkan resolve/reject dari validateSpotsData
 export const getStudySpotsWithThen = (): Promise<ApiResponse<StudySpot[]>> => {
   return fetch(API_URL)
     .then((response) => {
@@ -223,6 +237,33 @@ export const getStudySpotsWithThen = (): Promise<ApiResponse<StudySpot[]>> => {
           rating: 4.9,
           category: 'Perpustakaan',
         },
+        {
+          emoji: '🍃',
+          noiseLevel: 'Ramai 🥳' as const,
+          hasAC: false,
+          powerOutlets: 'Sedikit ⚡' as const,
+          wifiQuality: 'Lumayan 📶' as const,
+          rating: 4.5,
+          category: 'Area Terbuka',
+        },
+        {
+          emoji: '🏢',
+          noiseLevel: 'Sedang ☕' as const,
+          hasAC: true,
+          powerOutlets: 'Banyak 🔌' as const,
+          wifiQuality: 'Ngebut 🚀' as const,
+          rating: 4.7,
+          category: 'Workspace',
+        },
+        {
+          emoji: '🍰',
+          noiseLevel: 'Sedang ☕' as const,
+          hasAC: true,
+          powerOutlets: 'Sedikit ⚡' as const,
+          wifiQuality: 'Lumayan 📶' as const,
+          rating: 4.6,
+          category: 'Cafe',
+        },
       ];
 
       const mappedSpots: StudySpot[] = rawData
@@ -239,6 +280,7 @@ export const getStudySpotsWithThen = (): Promise<ApiResponse<StudySpot[]>> => {
           };
         });
 
+      // Memanggil helper yang menggunakan resolve() & reject()
       return validateSpotsData(mappedSpots);
     })
     .then((validatedSpots) => {
