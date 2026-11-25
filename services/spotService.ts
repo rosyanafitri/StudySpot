@@ -1,66 +1,173 @@
+import { Linking } from 'react-native';
 import { StudySpot } from '../types/spot';
 import { ApiResponse } from '../types/api';
 
-// 🟢 ENDPOINT API EKSTERNAL AKTIF 100% (JSONPlaceholder Public API)
 const API_URL = 'https://jsonplaceholder.typicode.com/posts';
 
+// Interface untuk hasil pencarian eksternal OpenStreetMap
+export interface ExternalSpot {
+  id: string;
+  name: string;
+  address: string;
+  lat: string;
+  lon: string;
+  category: string;
+}
+
+// Helper Function: Membuka koordinat peta ke Google Maps saat "Lihat peta ↗" diklik
+export const openLocationInMap = (lat?: string, lon?: string, name?: string) => {
+  if (lat && lon) {
+    const mapUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`;
+    Linking.openURL(mapUrl);
+  } else {
+    const queryUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(
+      name || 'Cafe Malang'
+    )}`;
+    Linking.openURL(queryUrl);
+  }
+};
+
+// Fungsi Async untuk mencari tempat asli dari OpenStreetMap API (Pencarian Eksternal)
+export const searchExternalSpots = async (queryText: string): Promise<ExternalSpot[]> => {
+  if (!queryText.trim()) return [];
+
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+        queryText
+      )}&format=json&addressdetails=1&limit=10`,
+      {
+        headers: {
+          'User-Agent': 'StudySpotApp/1.0',
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error('Gagal mengambil data dari OpenStreetMap');
+    }
+
+    const data = await response.json();
+
+    return data.map((item: any) => ({
+      id: String(item.place_id),
+      name: item.name || item.display_name.split(',')[0],
+      address: item.display_name,
+      lat: item.lat,
+      lon: item.lon,
+      category: item.type || 'cafe',
+    }));
+  } catch (error) {
+    console.error('Error fetching OSM data:', error);
+    return [];
+  }
+};
+
+// Custom Async Function: mengambil daftar StudySpot (Rekomendasi Utama)
 export const getStudySpots = async (): Promise<ApiResponse<StudySpot[]>> => {
   try {
-    // 1. Melakukan Network Call Fetch ke Server Eksternal
     const response = await fetch(API_URL);
 
     if (!response.ok) {
-      throw new Error(`Server Error (Status: ${response.status})`);
+      throw new Error(`Server Error: ${response.status}`);
     }
 
     const rawData = await response.json();
 
-    // 2. Ambil 5 item pertama dari API eksternal dan petakan ke struktur StudySpot
-    const mappedSpots: StudySpot[] = rawData.slice(0, 5).map((item: any, index: number) => {
-      const spotConfigs = [
-        { emoji: '☕', noise: 'Tenang & Kondusif', ac: true, power: 'Setiap Meja 🔌', wifi: '100 Mbps 🚀', rating: 4.8 },
-        { emoji: '🏢', noise: 'Quiet Zone Only', ac: true, power: 'Banyak 🔌', wifi: 'Dedicated Fiber 🚀', rating: 4.9 },
-        { emoji: '🍃', noise: 'Outdoor Sejuk', ac: false, power: 'Terbatas 🔌', wifi: 'Cukup 📶', rating: 4.4 },
-        { emoji: '📚', noise: 'Hening Sekali 🤫', ac: true, power: 'Banyak 🔌', wifi: 'Kencang 🚀', rating: 4.7 },
-        { emoji: '🍰', noise: 'Sedang / Cafe Music', ac: true, power: 'Ada di Beberapa Spot 🔌', wifi: 'Stabil 📶', rating: 4.6 },
-      ];
+    const spotConfigs = [
+      {
+        emoji: '☕',
+        noiseLevel: 'Tenang Banget 🤫' as const,
+        hasAC: true,
+        powerOutlets: 'Banyak 🔌' as const,
+        wifiQuality: 'Ngebut 🚀' as const,
+        rating: 4.8,
+        category: 'Cafe Co-Working',
+      },
+      {
+        emoji: '📚',
+        noiseLevel: 'Tenang Banget 🤫' as const,
+        hasAC: true,
+        powerOutlets: 'Banyak 🔌' as const,
+        wifiQuality: 'Lumayan 📶' as const,
+        rating: 4.9,
+        category: 'Perpustakaan',
+      },
+      {
+        emoji: '🍃',
+        noiseLevel: 'Ramai 🥳' as const,
+        hasAC: false,
+        powerOutlets: 'Sedikit ⚡' as const,
+        wifiQuality: 'Lumayan 📶' as const,
+        rating: 4.5,
+        category: 'Area Terbuka',
+      },
+      {
+        emoji: '🏢',
+        noiseLevel: 'Sedang ☕' as const,
+        hasAC: true,
+        powerOutlets: 'Banyak 🔌' as const,
+        wifiQuality: 'Ngebut 🚀' as const,
+        rating: 4.7,
+        category: 'Workspace',
+      },
+      {
+        emoji: '🍰',
+        noiseLevel: 'Sedang ☕' as const,
+        hasAC: true,
+        powerOutlets: 'Sedikit ⚡' as const,
+        wifiQuality: 'Lumayan 📶' as const,
+        rating: 4.6,
+        category: 'Cafe',
+      },
+    ];
 
-      const config = spotConfigs[index % spotConfigs.length];
-
-      return {
-        id: String(item.id),
-        name: item.title.length > 25 ? item.title.substring(0, 25) + '...' : item.title,
-        emoji: config.emoji,
-        rating: config.rating,
-        noiseLevel: config.noise,
-        hasAC: config.ac,
-        powerOutlets: config.power,
-        wifiQuality: config.wifi,
-      };
-    });
+    const mappedSpots: StudySpot[] = rawData
+      .slice(0, 5)
+      .map((item: any, index: number) => {
+        const config = spotConfigs[index % spotConfigs.length];
+        return {
+          id: String(item.id),
+          name:
+            item.title.length > 30
+              ? item.title.substring(0, 30) + '...'
+              : item.title,
+          ...config,
+        };
+      });
 
     return {
       success: true,
-      message: 'Berhasil mengambil data dari External API',
+      message: 'Berhasil mengambil data dari API',
       data: mappedSpots,
     };
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Gagal terhubung ke API',
+      message:
+        error instanceof Error ? error.message : 'Gagal terhubung ke API',
       data: [],
     };
   }
 };
 
-export const getStudySpotById = async (id: string): Promise<ApiResponse<StudySpot | null>> => {
+// Custom Async Function: mengambil detail berdasarkan ID
+export const getStudySpotById = async (
+  id: string
+): Promise<ApiResponse<StudySpot | null>> => {
   try {
     const response = await getStudySpots();
+
     if (!response.success) {
-      return { success: false, message: response.message, data: null };
+      return {
+        success: false,
+        message: response.message,
+        data: null,
+      };
     }
 
-    const spot = response.data.find((s) => s.id === id) || null;
+    const spot = response.data.find((item) => item.id === id) ?? null;
+
     return {
       success: spot !== null,
       message: spot ? 'Detail spot ditemukan' : 'Spot tidak ditemukan',
@@ -69,8 +176,86 @@ export const getStudySpotById = async (id: string): Promise<ApiResponse<StudySpo
   } catch (error) {
     return {
       success: false,
-      message: 'Gagal mengambil detail dari API',
+      message:
+        error instanceof Error ? error.message : 'Gagal mengambil detail spot',
       data: null,
     };
   }
+};
+
+// Progress 3: Promise, resolve(), reject()
+export const validateSpotsData = (spots: StudySpot[]): Promise<StudySpot[]> => {
+  return new Promise((resolve, reject) => {
+    if (spots && spots.length > 0) {
+      resolve(spots);
+    } else {
+      reject(new Error('Validasi Gagal: Data StudySpot kosong atau tidak ditemukan.'));
+    }
+  });
+};
+
+// Custom Function menggunakan .then(), .catch()
+export const getStudySpotsWithThen = (): Promise<ApiResponse<StudySpot[]>> => {
+  return fetch(API_URL)
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error(`Server Error: ${response.status}`);
+      }
+      return response.json();
+    })
+    .then((rawData) => {
+      const spotConfigs = [
+        {
+          emoji: '☕',
+          noiseLevel: 'Tenang Banget 🤫' as const,
+          hasAC: true,
+          powerOutlets: 'Banyak 🔌' as const,
+          wifiQuality: 'Ngebut 🚀' as const,
+          rating: 4.8,
+          category: 'Cafe Co-Working',
+        },
+        {
+          emoji: '📚',
+          noiseLevel: 'Tenang Banget 🤫' as const,
+          hasAC: true,
+          powerOutlets: 'Banyak 🔌' as const,
+          wifiQuality: 'Lumayan 📶' as const,
+          rating: 4.9,
+          category: 'Perpustakaan',
+        },
+      ];
+
+      const mappedSpots: StudySpot[] = rawData
+        .slice(0, 5)
+        .map((item: any, index: number) => {
+          const config = spotConfigs[index % spotConfigs.length];
+          return {
+            id: String(item.id),
+            name:
+              item.title.length > 30
+                ? item.title.substring(0, 30) + '...'
+                : item.title,
+            ...config,
+          };
+        });
+
+      return validateSpotsData(mappedSpots);
+    })
+    .then((validatedSpots) => {
+      return {
+        success: true,
+        message: 'Berhasil mengambil data menggunakan .then()',
+        data: validatedSpots,
+      };
+    })
+    .catch((error) => {
+      return {
+        success: false,
+        message:
+          error instanceof Error
+            ? error.message
+            : 'Gagal memproses data dengan .then()',
+        data: [],
+      };
+    });
 };

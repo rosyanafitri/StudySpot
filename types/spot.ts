@@ -8,4 +8,8 @@ export interface StudySpot {
   wifiQuality: 'Ngebut 🚀' | 'Lumayan 📶' | 'Lemot 🐢';
   category: string;
   emoji: string;
+  // 🟢 Properti tambahan opsional untuk integrasi OpenStreetMap
+  address?: string;
+  lat?: string;
+  lon?: string;
 }
